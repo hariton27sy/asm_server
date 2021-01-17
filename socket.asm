@@ -20,6 +20,9 @@ error_listen_len = . - error_listen
 error_accept: .ascii "Cannot accept connection\n"
 error_accept_len = . - error_accept
 
+error_close: .ascii "Cannot close socket\n"
+error_close_len = . - error_close
+
 addr: .short 2 # тип адреса
       .byte 0x1f, 0x90 # порт в big-endian
       .byte 127, 0, 0, 1 # сам адрес
@@ -114,10 +117,10 @@ bind:
 # числом подключений 1
 # Входные параметры:
 #   %rdi - дескриптор сокета
+#   %rsi - число одновременных подключений
 # В случае ошибки завершение работы приложения
 listen:
     mov $50, %rax
-    mov $1, %rsi
     syscall
 
     test %rax, %rax
@@ -132,11 +135,10 @@ listen:
 # %rsi - указатель на то чтобы записать туда адрес.
 # %rdx - указатель на длину адреса.
 # Выходные параметры:
-#   %rax - дескриптор сокета, с подключением
+#   %rax - дескриптор подключения
 # В случае ошибки завершается работа приложения
 accept:
     mov $43, %rax
-    xor %rdx, %rdx
     syscall
 
     cmp $-1, %rax
@@ -144,4 +146,19 @@ accept:
     ret
 1:
     print error_accept error_accept_len
+    exit $1
+
+# https://man7.org/linux/man-pages/man2/shutdown.2.html
+# %rdi - дескриптор сокета
+# В случае ошибки завершается работа приложения
+close:
+    mov $48, %rax
+    mov $2, %rsi
+    syscall
+
+    test %rax, %rax
+    jnz 1f
+    ret
+1:
+    print error_close error_close_len
     exit $1
