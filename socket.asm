@@ -23,6 +23,9 @@ error_accept_len = . - error_accept
 error_close: .ascii "Cannot close socket\n"
 error_close_len = . - error_close
 
+error_send: .ascii "Cannot send data\n"
+error_send_len = . - error_send
+
 addr: .short 2 # тип адреса
       .byte 0x1f, 0x90 # порт в big-endian
       .byte 127, 0, 0, 1 # сам адрес
@@ -147,6 +150,23 @@ accept:
 1:
     print error_accept error_accept_len
     exit $1
+
+# https://man7.org/linux/man-pages/man2/sendto.2.html
+# %rdi - дескриптор сокета
+# %rsi - буффер
+# %rdx - размер буффера
+send:
+    mov $44, %rax
+    xor %r10, %r10
+    xor %r8, %r8
+    xor %r9, %r9
+    syscall
+
+    cmp $0, %rax
+    jnl 1f
+    print error_send error_send_len
+1:
+    ret
 
 # https://man7.org/linux/man-pages/man2/shutdown.2.html
 # %rdi - дескриптор сокета

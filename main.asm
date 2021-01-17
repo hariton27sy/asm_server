@@ -4,6 +4,9 @@
 .data
 format: .ascii
 
+test_msg: .ascii "Hello, there!"
+test_msg_len = . - test_msg
+
 .bss
 _sock_fd: .space 4
 _addr_len: .space 8
@@ -24,13 +27,20 @@ _start:
     # Включим режим прослушивания
     mov $1, %rsi
     call listen
-inf_loop: # В цикле принимаем соединения и сразу же разрываем их
+inf_loop:
+    # Ждем новые подключения
     mov _sock_fd, %edi
     mov $_addr, %rsi
     mov $_addr_len, %rdx
     call accept
 
+    # Отправляем сообщение
     mov %rax, %rdi
+    mov $test_msg, %rsi
+    mov $test_msg_len, %rdx
+    call send
+
+    # Закрываем соединение
     call close
 
     jmp inf_loop
